@@ -89,8 +89,34 @@ test('unknown paths get a not-found message', () => {
 test('redirects to sign in, remembering where the user was going', () => {
   auth.isAuthenticated = false;
   auth.user = undefined;
+  window.history.replaceState({}, '', '/fleet/x?y=1');
   renderAt('/fleet/x?y=1');
   expect(auth.signinRedirect).toHaveBeenCalledWith({ state: { returnTo: '/fleet/x?y=1' } });
+});
+
+test('does not auto sign in again while signing out', async () => {
+  const { resetSigningOutForTests } = await import('./auth/useShellContext');
+  const mod = await import('./auth/useShellContext');
+  vi.spyOn(mod, 'isSigningOut').mockReturnValue(true);
+  auth.isAuthenticated = false;
+  auth.user = undefined;
+  renderAt('/');
+  expect(auth.signinRedirect).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
+  resetSigningOutForTests();
+});
+
+test('a failed silent renew does not unmount a signed-in user', () => {
+  auth.error = new Error('renew failed');
+  renderAt('/');
+  expect(screen.getByRole('heading', { name: 'Fleet' })).toBeInTheDocument();
+});
+
+test('waits for the callback rather than redirecting again', () => {
+  auth.isAuthenticated = false;
+  auth.user = undefined;
+  renderAt('/loggedin?code=abc&state=xyz');
+  expect(auth.signinRedirect).not.toHaveBeenCalled();
 });
 
 test('shows sign-in errors with a way to retry', () => {

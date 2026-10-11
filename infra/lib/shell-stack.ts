@@ -145,8 +145,9 @@ export class ShellStack extends cdk.Stack {
       managedPolicyName: `nakomis-shell-remote-deployer-${deployEnv}`,
       description: 'Publish a Module Federation remote into the shell bucket and invalidate it',
       statements: [
+        // Remotes run in the shell's origin, so remote CI is trusted with the whole app.
         new iam.PolicyStatement({
-          actions: ['s3:PutObject', 's3:DeleteObject', 's3:GetObject'],
+          actions: ['s3:PutObject'],
           resources: [bucket.arnForObjects('remotes/*')],
         }),
         new iam.PolicyStatement({
@@ -180,7 +181,7 @@ export class ShellStack extends cdk.Stack {
     );
     ciRole.addToPolicy(
       new iam.PolicyStatement({
-        actions: ['s3:PutObject', 's3:DeleteObject', 's3:GetObject'],
+        actions: ['s3:PutObject'],
         resources: [bucket.arnForObjects('shell/*')],
       }),
     );

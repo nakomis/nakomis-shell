@@ -57,7 +57,7 @@ export function RemoteMount({ name, context }: { name: string; context: ShellCon
     let cancelled = false;
     setApp(undefined);
     setError(undefined);
-    loadRemoteApp(name).then(
+    loadRemoteApp(name, attempt > 0).then(
       (app) => !cancelled && setApp(() => app),
       (err: Error) => !cancelled && setError(`Could not load ${name}: ${err.message}`),
     );

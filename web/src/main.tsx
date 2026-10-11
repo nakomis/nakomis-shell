@@ -31,7 +31,9 @@ async function start() {
           automaticSilentRenew
           userStore={new WebStorageStateStore({ store: window.sessionStorage })}
           onSigninCallback={(user) => {
-            const returnTo = (user?.state as SignInState | undefined)?.returnTo ?? '/';
+            const requested = (user?.state as SignInState | undefined)?.returnTo ?? '/';
+            // Same-origin paths only: "//evil.example" would make replaceState throw (or worse).
+            const returnTo = `/${requested.replace(/^\/+/, '')}`;
             window.history.replaceState({}, document.title, returnTo);
             // Let the router pick up the new location.
             window.dispatchEvent(new PopStateEvent('popstate'));

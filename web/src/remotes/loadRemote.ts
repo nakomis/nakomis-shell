@@ -5,16 +5,28 @@ import type { RemoteDefinition, ShellContext } from '../../../contract/shell-con
 export type RemoteApp = ComponentType<ShellContext>;
 
 const loaded = new Map<string, Promise<RemoteApp>>();
+const entries = new Map<string, string>();
 
 export function registerRemoteDefinitions(defs: RemoteDefinition[]) {
+  const mountable = defs.filter((d) => !d.href);
+  for (const d of mountable) entries.set(d.name, d.entry);
   registerRemotes(
-    defs.filter((d) => !d.href).map((d) => ({ name: d.name, entry: d.entry, type: 'module' as const })),
+    mountable.map((d) => ({ name: d.name, entry: d.entry, type: 'module' as const })),
     { force: true },
   );
 }
 
-/** Loads `<name>/App`. Failures are not cached, so a retry fetches again. */
-export function loadRemoteApp(name: string): Promise<RemoteApp> {
+/**
+ * Loads `<name>/App`. Failures are not cached. A retry re-registers the remote with a cache-busting
+ * entry URL, because browsers remember a failed module fetch for the life of the page.
+ */
+export function loadRemoteApp(name: string, retry = false): Promise<RemoteApp> {
+  const entry = entries.get(name);
+  if (retry && entry) {
+    loaded.delete(name);
+    const sep = entry.includes('?') ? '&' : '?';
+    registerRemotes([{ name, entry: `${entry}${sep}r=${Date.now()}`, type: 'module' }], { force: true });
+  }
   let pending = loaded.get(name);
   if (!pending) {
     pending = loadRemote<{ default: RemoteApp }>(`${name}/App`).then((mod) => {

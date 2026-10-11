@@ -1,9 +1,17 @@
+import type { User } from 'oidc-client-ts';
 import { useMemo, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { CONTRACT_VERSION, type ShellConfig, type ShellContext } from '../../../contract/shell-contract';
 import { AwsCredentialsProvider } from './awsCredentials';
 
 const TOKEN_REFRESH_MARGIN_S = 60;
+
+// Set once sign-out starts, so the auto sign-in in App doesn't race the Cognito logout redirect.
+let signingOut = false;
+export const isSigningOut = () => signingOut;
+export const resetSigningOutForTests = () => {
+  signingOut = false;
+};
 
 export function signOutUrl(config: ShellConfig, origin: string) {
   const params = new URLSearchParams({ client_id: config.clientId, logout_uri: `${origin}/` });
@@ -17,6 +25,8 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
   authRef.current = auth;
   const credentials = useMemo(() => new AwsCredentialsProvider(config.region, config.userPoolId), [config]);
   const profile = auth.user?.profile;
+  // One renewal at a time, however many remotes ask for a token at once.
+  const renewing = useRef<Promise<User> | undefined>(undefined);
 
   return useMemo(() => {
     if (!profile) return undefined;
@@ -26,9 +36,16 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
       const current = authRef.current;
       const user = current.user;
       if (user && (user.expires_in ?? 0) > TOKEN_REFRESH_MARGIN_S) return user;
-      const renewed = await current.signinSilent();
-      if (!renewed) throw new Error('Session expired; please sign in again');
-      return renewed;
+      renewing.current ??= current
+        .signinSilent()
+        .then((renewed) => {
+          if (!renewed) throw new Error('Session expired; please sign in again');
+          return renewed;
+        })
+        .finally(() => {
+          renewing.current = undefined;
+        });
+      return renewing.current;
     };
 
     return {
@@ -54,10 +71,10 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
         return credentials.get(identityPoolId, user.id_token);
       },
       signOut: () => {
+        signingOut = true;
         credentials.clear();
-        void authRef.current.removeUser().then(() => {
-          window.location.assign(signOutUrl(config, window.location.origin));
-        });
+        const leave = () => window.location.assign(signOutUrl(config, window.location.origin));
+        authRef.current.removeUser().then(leave, leave);
       },
     };
   }, [profile, config, credentials]);

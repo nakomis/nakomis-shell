@@ -65,7 +65,7 @@ describe.each(['sandbox', 'prod'] as const)('%s', (env) => {
       PolicyDocument: {
         Statement: Match.arrayWith([
           Match.objectLike({
-            Action: ['s3:PutObject', 's3:DeleteObject', 's3:GetObject'],
+            Action: 's3:PutObject',
             Resource: Match.objectLike({ 'Fn::Join': ['', Match.arrayWith(['/remotes/*'])] }),
           }),
         ]),
@@ -121,6 +121,8 @@ describe('rewrite function', () => {
     ['/favicon.svg', '/shell/favicon.svg'],
     ['/remotes/fleet/remoteEntry.js', '/remotes/fleet/remoteEntry.js'],
     ['/config/remotes.json', '/config/remotes.json'],
+    ['/fleet/firmware/1.2.3', '/shell/index.html'],
+    ['/fleet/devices/foo.local', '/shell/index.html'],
   ])('%s → %s', (uri, expected) => {
     expect(handler(uri)).toBe(expected);
   });

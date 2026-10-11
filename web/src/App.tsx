@@ -7,9 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useLocation } from 'react-router';
 import type { RemoteDefinition, ShellConfig } from '../../contract/shell-contract';
-import { useShellContext } from './auth/useShellContext';
+import { isSigningOut, useShellContext } from './auth/useShellContext';
 import { Home } from './components/Home';
-import { Layout } from './components/Layout';
+import { isActive, Layout } from './components/Layout';
 import { RemoteMount } from './remotes/RemoteMount';
 
 export interface SignInState {
@@ -33,19 +33,24 @@ export function App({ config, remotes }: { config: ShellConfig; remotes: RemoteD
   const [navNonce, setNavNonce] = useState(0);
 
   const needsSignIn = !auth.isLoading && !auth.isAuthenticated && !auth.error && !auth.activeNavigator;
+  const callbackPending = location.pathname === '/loggedin' && /[?&](code|error)=/.test(location.search);
   useEffect(() => {
-    if (needsSignIn && !redirecting.current && location.pathname !== '/loggedin') {
-      redirecting.current = true;
-      const state: SignInState = { returnTo: location.pathname + location.search };
-      void auth.signinRedirect({ state });
-    }
-  }, [needsSignIn, auth, location]);
+    if (!needsSignIn || redirecting.current || callbackPending || isSigningOut()) return;
+    redirecting.current = true;
+    // Remotes navigate with their own routers, so the window has the real location.
+    const here = window.location.pathname + window.location.search;
+    const state: SignInState = { returnTo: here.startsWith('/loggedin') ? '/' : here };
+    auth.signinRedirect({ state }).catch(() => {
+      redirecting.current = false;
+    });
+  }, [needsSignIn, callbackPending, auth]);
 
-  if (auth.error) {
+  // A failed silent renew also sets auth.error; only treat it as fatal when we're not signed in.
+  if (auth.error && !auth.isAuthenticated) {
     return (
       <Centred>
         <Alert severity="error">Sign-in failed: {auth.error.message}</Alert>
-        <Button variant="contained" onClick={() => void auth.signinRedirect()}>
+        <Button variant="contained" onClick={() => auth.signinRedirect().catch(() => {})}>
           Sign in again
         </Button>
       </Centred>
@@ -70,7 +75,7 @@ export function App({ config, remotes }: { config: ShellConfig; remotes: RemoteD
       username={context.user.username}
       onSignOut={context.signOut}
       onNavigate={(remote) => {
-        if (location.pathname.startsWith(remote.path)) setNavNonce((n) => n + 1);
+        if (isActive(window.location.pathname, remote.path)) setNavNonce((n) => n + 1);
       }}
     >
       <Routes>

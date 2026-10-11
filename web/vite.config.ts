@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // Local dev proxies runtime config and deployed remotes from the sandbox shell, so the host can be
-// developed against real remotes. Point a single remote at localhost via ?remote:<name>=<url>.
+// developed against real remotes.
 const SANDBOX = 'https://app.sandbox.nakomis.com';
 
 export default defineConfig({
