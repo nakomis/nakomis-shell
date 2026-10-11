@@ -93,6 +93,13 @@ describe.each(['sandbox', 'prod'] as const)('%s', (env) => {
     });
   });
 
+  test('external repos get a remote-publishing CI role', () => {
+    shell.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: `nakomis-nakomis-status-remote-ci-${env}`,
+      ManagedPolicyArns: Match.anyValue(),
+    });
+  });
+
   test('exports client id and deploy targets to SSM', () => {
     for (const name of ['cognito/client-id', 'bucket-name', 'distribution-id', 'remote-deployer-policy-arn']) {
       shell.hasResourceProperties('AWS::SSM::Parameter', { Name: `/nakomis-shell/${env}/${name}` });

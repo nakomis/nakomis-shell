@@ -45,13 +45,19 @@ export const REMOTES: Record<DeployEnv, RemoteDefinition[]> = {
     remote('bootboots', 'BootBoots'),
     remote('admin', 'Admin'),
     link('scrum', 'Scrum', 'https://scrum.sandbox.nakomis.com'),
-    link('status', 'Status', 'https://status.nakom.is'),
+    remote('status', 'Status'),
     remote('sandbox', 'Sandbox'),
   ],
   prod: [
     remote('fleet', 'Fleet'),
     remote('admin', 'Admin'),
     link('scrum', 'Scrum', 'https://scrum.nakomis.com'),
-    link('status', 'Status', 'https://status.nakom.is'),
+    remote('status', 'Status'),
   ],
 };
+
+/**
+ * Repos with no AWS CDK of their own whose CI publishes a remote: the shell stack gives each a CI role
+ * (nakomis-<repo>-remote-ci-<env>) carrying only the remote-deployer policy.
+ */
+export const EXTERNAL_REMOTE_REPOS = [{ name: 'nakomis-status', id: '1170893569' }];
