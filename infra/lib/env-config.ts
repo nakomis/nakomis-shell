@@ -29,20 +29,35 @@ const remote = (name: string, title: string): RemoteDefinition => ({
   entry: `/remotes/${name}/remoteEntry.js`,
 });
 
-// Sidebar order. The Sandbox remote exists only in the sandbox shell: there is nowhere for it to go in prod.
+const link = (name: string, title: string, href: string): RemoteDefinition => ({
+  name,
+  title,
+  icon: name,
+  path: `/${name}`,
+  entry: '',
+  href,
+});
+
+// Sidebar order. Apps that aren't remotes yet are links that open in a new tab. The Sandbox remote exists only in the sandbox shell: there is nowhere for it to go in prod.
 export const REMOTES: Record<DeployEnv, RemoteDefinition[]> = {
   sandbox: [
     remote('fleet', 'Fleet'),
     remote('bootboots', 'BootBoots'),
     remote('admin', 'Admin'),
-    remote('scrum', 'Scrum'),
+    link('scrum', 'Scrum', 'https://scrum.sandbox.nakomis.com'),
     remote('status', 'Status'),
     remote('sandbox', 'Sandbox'),
   ],
   prod: [
     remote('fleet', 'Fleet'),
     remote('admin', 'Admin'),
-    remote('scrum', 'Scrum'),
+    link('scrum', 'Scrum', 'https://scrum.nakomis.com'),
     remote('status', 'Status'),
   ],
 };
+
+/**
+ * Repos with no AWS CDK of their own whose CI publishes a remote: the shell stack gives each a CI role
+ * (nakomis-<repo>-remote-ci-<env>) carrying only the remote-deployer policy.
+ */
+export const EXTERNAL_REMOTE_REPOS = [{ name: 'nakomis-status', id: '1170893569' }];

@@ -12,7 +12,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
-import { appDomain, type DeployEnv, REMOTES, ZONES } from './env-config';
+import { appDomain, type DeployEnv, EXTERNAL_REMOTE_REPOS, REMOTES, ZONES } from './env-config';
 import { MANAGED_LOGIN_SETTINGS } from './managed-login-branding';
 
 export interface ShellStackProps extends cdk.StackProps {
@@ -199,6 +199,18 @@ export class ShellStack extends cdk.Stack {
         resources: [`arn:aws:ssm:${this.region}:${this.account}:parameter/nakomis-shell/${deployEnv}/*`],
       }),
     );
+
+    for (const repo of EXTERNAL_REMOTE_REPOS) {
+      new iam.Role(this, `RemoteCiRole-${repo.name}`, {
+        roleName: `nakomis-${repo.name}-remote-ci-${deployEnv}`,
+        description: `Lets ${repo.name} CI publish its nakomis-shell remote (${deployEnv})`,
+        assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {
+          StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
+          StringLike: { 'token.actions.githubusercontent.com:sub': githubSubjects(repo) },
+        }),
+        managedPolicies: [remoteDeployer],
+      });
+    }
 
     // ── Exports ────────────────────────────────────────────────────────────
     const params: Record<string, string> = {
