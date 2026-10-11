@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useLocation } from 'react-router';
 import type { RemoteDefinition, ShellConfig } from '../../contract/shell-contract';
@@ -46,6 +46,17 @@ export function App({ config, remotes }: { config: ShellConfig; remotes: RemoteD
   }, [needsSignIn, callbackPending, auth]);
 
   // A failed silent renew also sets auth.error; only treat it as fatal when we're not signed in.
+  // One stable context object per remote, so remotes don't rebuild their services on every shell render.
+  const remoteContexts = useMemo(
+    () =>
+      context
+        ? Object.fromEntries(
+            remotes.filter((r) => !r.href).map((r) => [r.name, { ...context, basePath: r.path }]),
+          )
+        : {},
+    [context, remotes],
+  );
+
   if (auth.error && !auth.isAuthenticated) {
     return (
       <Centred>
@@ -89,7 +100,7 @@ export function App({ config, remotes }: { config: ShellConfig; remotes: RemoteD
               <RemoteMount
                 key={`${remote.name}-${navNonce}`}
                 name={remote.name}
-                context={{ ...context, basePath: remote.path }}
+                context={remoteContexts[remote.name]}
               />
             }
           />

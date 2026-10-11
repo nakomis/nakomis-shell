@@ -24,12 +24,17 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
   const authRef = useRef(auth);
   authRef.current = auth;
   const credentials = useMemo(() => new AwsCredentialsProvider(config.region, config.userPoolId), [config]);
+  // Token renewal gives a new profile object; depend only on the identity so remotes see a stable context.
   const profile = auth.user?.profile;
+  const sub = profile?.sub;
+  const username =
+    (profile?.['cognito:username'] as string | undefined) ?? profile?.preferred_username ?? sub;
+  const email = profile?.email;
   // One renewal at a time, however many remotes ask for a token at once.
   const renewing = useRef<Promise<User> | undefined>(undefined);
 
   return useMemo(() => {
-    if (!profile) return undefined;
+    if (!sub) return undefined;
 
     // Always read through the ref: remotes hold on to these functions across token renewals.
     const freshUser = async () => {
@@ -53,12 +58,7 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
       env: config.env,
       region: config.region,
       userPoolId: config.userPoolId,
-      user: {
-        sub: profile.sub,
-        username:
-          (profile['cognito:username'] as string | undefined) ?? profile.preferred_username ?? profile.sub,
-        email: profile.email,
-      },
+      user: { sub, username: username ?? sub, email },
       getAccessToken: async () => (await freshUser()).access_token,
       getIdToken: async () => {
         const user = await freshUser();
@@ -77,5 +77,5 @@ export function useShellContext(config: ShellConfig): Omit<ShellContext, 'basePa
         authRef.current.removeUser().then(leave, leave);
       },
     };
-  }, [profile, config, credentials]);
+  }, [sub, username, email, config, credentials]);
 }

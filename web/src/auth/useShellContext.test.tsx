@@ -108,3 +108,11 @@ test('sign-out marks the shell as signing out, drops the user and goes to Cognit
   expect(assign.mock.calls[0][0]).toContain('https://login.example/logout?client_id=client');
   vi.unstubAllGlobals();
 });
+
+test('token renewal (a new profile object) keeps the same context', () => {
+  const { result, rerender } = renderHook(() => useShellContext(config));
+  const first = result.current;
+  auth.user = user(3600, 'renewed');
+  rerender();
+  expect(result.current).toBe(first);
+});
