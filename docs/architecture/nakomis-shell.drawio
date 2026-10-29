@@ -26,7 +26,7 @@
     <mxCell id="b4" value="remotes/admin/  (nakom-admin)" style="text;html=1;align=left;" vertex="1" parent="bucket">
       <mxGeometry x="10" y="126" width="280" height="24" as="geometry"/>
     </mxCell>
-    <mxCell id="b5" value="remotes/bootboots/  (sandbox only)" style="text;html=1;align=left;" vertex="1" parent="bucket">
+    <mxCell id="b5" value="remotes/bootboots/  (bootboots)" style="text;html=1;align=left;" vertex="1" parent="bucket">
       <mxGeometry x="10" y="156" width="280" height="24" as="geometry"/>
     </mxCell>
     <mxCell id="b6" value="remotes/status/  (nakomis-status)" style="text;html=1;align=left;" vertex="1" parent="bucket">

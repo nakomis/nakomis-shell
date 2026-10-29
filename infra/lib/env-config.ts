@@ -50,6 +50,7 @@ export const REMOTES: Record<DeployEnv, RemoteDefinition[]> = {
   ],
   prod: [
     remote('fleet', 'Fleet'),
+    remote('bootboots', 'BootBoots'),
     remote('admin', 'Admin'),
     link('scrum', 'Scrum', 'https://scrum.nakomis.com'),
     remote('status', 'Status'),
