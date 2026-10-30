@@ -112,6 +112,11 @@ test('the Sandbox remote is only offered in the sandbox shell', () => {
   expect(REMOTES.prod.map((r) => r.name)).not.toContain('sandbox');
 });
 
+test('the BootBoots remote is offered in both shells', () => {
+  expect(REMOTES.sandbox.map((r) => r.name)).toContain('bootboots');
+  expect(REMOTES.prod.map((r) => r.name)).toContain('bootboots');
+});
+
 describe('rewrite function', () => {
   const handler = (() => {
     const context: { handler?: (e: unknown) => { uri: string } } = {};
